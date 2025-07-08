@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
@@ -214,6 +214,10 @@
         // === KONFIGURÁCIA API KĽÚČA ===
         // Nahraď "VLOŽ_SEM_TVOJ_SKUTOČNÝ_API_KĽÚČ" svojím vlastným API kľúčom z Google AI Studio.
         // https://ai.google.dev/gemini-api/docs/get-started/web
+        // Ak dostávate chybu "403 - Imagen API is only accessible to billed users",
+        // znamená to, že váš Google Cloud projekt, ku ktorému je API kľúč priradený,
+        // nemá aktivovanú fakturáciu. Pre použitie Imagen API je potrebné aktivovať fakturáciu
+        // v Google Cloud Console (aj pre bezplatnú úroveň).
         const API_KEY = "AIzaSyBnFm2jdGtNcfacDF4RiyJMXZuHcQVycAg"; // <--- VLOŽ SEM SVOJ API KĽÚČ MEDZI ÚVODZOVKY!
 
         // === Získanie referencií na HTML elementy ===
