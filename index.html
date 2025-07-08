@@ -212,7 +212,7 @@
 
     <script>
         // === KONFIGURÁCIA API KĽÚČA ===
-        // Nahraď "VLOŽ_SEM_TVOJ_SKUTOČNÝ_API_KĽÚČ" svojím vlastným API kľúčom z Google AI Studio.
+        // Nahraď "" (prázdne úvodzovky) svojím vlastným API kľúčom z Google AI Studio.
         // https://ai.google.dev/gemini-api/docs/get-started/web
         // Ak dostávate chybu "403 - Imagen API is only accessible to billed users",
         // znamená to, že váš Google Cloud projekt, ku ktorému je API kľúč priradený,
@@ -268,7 +268,7 @@
             }
 
             // Kontrola, či bol API kľúč nastavený
-            if (API_KEY === "VLOŽ_SEM_TVOJ_SKUTOČNÝ_API_KĽÚČ" || !API_KEY) {
+            if (API_KEY === "" || !API_KEY) { // Teraz kontrolujeme prázdne úvodzovky
                 showMessage('Prosím, vlož svoj vlastný API kľúč do kódu (riadok 95).', 'error');
                 return;
             }
