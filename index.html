@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
@@ -163,8 +163,8 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="text-3xl font-bold text-gray-800">Generátor Obrázkov</h1>
-        <p class="text-gray-600">Zadaj popis obrázka, ktorý chceš vygenerovať.</p>
+        <h1 class="text-3xl font-bold text-gray-800">Generátor Obrázkov (len zástupný obrázok)</h1>
+        <p class="text-gray-600">Zadaj popis obrázka, ktorý chceš vygenerovať. (Poznámka: Zobrazí sa len zástupný obrázok na základe textu, nie skutočný vygenerovaný obrázok kvôli požiadavkám API na fakturáciu).</p>
         
         <!-- Sekcia pre výber pomeru strán -->
         <div class="aspect-ratio-selection">
@@ -218,6 +218,8 @@
         // znamená to, že váš Google Cloud projekt, ku ktorému je API kľúč priradený,
         // nemá aktivovanú fakturáciu. Pre použitie Imagen API je potrebné aktivovať fakturáciu
         // v Google Cloud Console (aj pre bezplatnú úroveň).
+        // Táto verzia používa Gemini 2.0 Flash na generovanie textového popisu a zástupný obrázok (placeholder),
+        // aby sa predišlo požiadavkám na fakturáciu Imagen API.
         const API_KEY = "AIzaSyBnFm2jdGtNcfacDF4RiyJMXZuHcQVycAg"; // <--- VLOŽ SEM SVOJ API KĽÚČ MEDZI ÚVODZOVKY!
 
         // === Získanie referencií na HTML elementy ===
@@ -233,9 +235,9 @@
 
         // Mapa pre pomery strán a ich zodpovedajúce rozlíšenia
         const aspectRatioSizes = {
-            "16:9": "1792x1024", // Vysoké rozlíšenie pre 16:9
-            "1:1": "1024x1024", // Bežné rozlíšenie pre štvorec
-            "4:3": "1024x768"   // Bežné rozlíšenie pre 4:3
+            "16:9": { width: 600, height: 338 }, // Približný pomer 16:9 pre placeholder
+            "1:1": { width: 400, height: 400 },   // Pomer 1:1 pre placeholder
+            "4:3": { width: 533, height: 400 }    // Približný pomer 4:3 pre placeholder
         };
 
         // Funkcia na zobrazenie správy pre používateľa
@@ -271,7 +273,7 @@
                 return;
             }
 
-            // Získanie vybraného pomeru strán
+            // Získanie vybraného pomeru strán pre placeholder
             let selectedAspectRatio = "16:9"; // Predvolený pomer strán
             for (const radio of aspectRatioRadios) {
                 if (radio.checked) {
@@ -279,7 +281,7 @@
                     break;
                 }
             }
-            const imageSize = aspectRatioSizes[selectedAspectRatio];
+            const imageDimensions = aspectRatioSizes[selectedAspectRatio];
 
             // Skryť predošlý obrázok a zobraziť indikátor načítania
             generatedImage.classList.add('hidden');
@@ -289,26 +291,19 @@
             messageBox.style.display = 'none'; // Skryť predošlé správy
 
             try {
-                // Konfigurácia payloadu pre Gemini API
-                const payload = {
-                    instances: { prompt: prompt },
-                    parameters: {
-                        "sampleCount": 1, // Chceme vygenerovať jeden obrázok
-                        "imageSize": imageSize // Nastavenie rozlíšenia podľa vybraného pomeru strán
-                    }
-                };
+                // Používame gemini-2.0-flash na generovanie textového popisu
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: `Vytvor veľmi krátky, výstižný textový popis pre obrázok s nasledujúcou témou: "${prompt}". Tento popis bude použitý ako text na zástupnom obrázku. Maximálne 5 slov.` }] });
+                const payload = { contents: chatHistory };
 
-                // URL pre model imagen-3.0-generate-002
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${API_KEY}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
-                // Vykonanie fetch požiadavky na Gemini API
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
-                // Kontrola, či bola odpoveď úspešná
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(`Chyba API: ${response.status} - ${errorData.error.message || response.statusText}`);
@@ -316,14 +311,18 @@
 
                 const result = await response.json();
 
-                // Kontrola štruktúry odpovede a zobrazenie obrázka
-                if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
-                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
-                    generatedImage.src = imageUrl;
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const generatedText = result.candidates[0].content.parts[0].text;
+                    const encodedText = encodeURIComponent(generatedText);
+                    const placeholderImageUrl = `https://placehold.co/${imageDimensions.width}x${imageDimensions.height}/000/FFF?text=${encodedText}`;
+
+                    generatedImage.src = placeholderImageUrl;
                     generatedImage.classList.remove('hidden'); // Zobraziť vygenerovaný obrázok
-                    showMessage('Obrázok bol úspešne vygenerovaný!', 'info');
+                    showMessage('Zástupný obrázok bol úspešne vygenerovaný!', 'info');
                 } else {
-                    showMessage('Nepodarilo sa vygenerovať obrázok. Skúste to prosím znova s iným popisom.', 'error');
+                    showMessage('Nepodarilo sa vygenerovať textový popis pre obrázok. Skúste to prosím znova.', 'error');
                     placeholderText.classList.remove('hidden'); // Zobraziť placeholder
                 }
 
